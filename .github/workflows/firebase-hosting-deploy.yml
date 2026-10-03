@@ -1,8 +1,11 @@
-name: Deploy to Firebase Hosting on push
+name: Deploy to Firebase Hosting on push and schedule
 on:
   push:
     branches:
-      - main  # Eger branch adyňyz master bolsa, master ýazyň
+      - main
+  schedule:
+    # Her 45 minutdan awtomatiki işleýär
+    - cron: '*/45 * * * *'
 
 jobs:
   build_and_deploy:
@@ -10,8 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # VPN Gate-den iň täze CSV-ni awtomatiki göçürip public/ papka goýýar:
-      - name: Fetch VPN Gate CSV
+      # VPN Gate-den iň täze CSV-ni alyp public/vpngate.csv üstüne ýazýar
+      - name: Fetch Latest VPN Gate CSV
         run: |
           mkdir -p public
           curl -s "http://www.vpngate.net/api/iphone/" -o public/vpngate.csv
