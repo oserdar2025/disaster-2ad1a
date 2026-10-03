@@ -2,7 +2,7 @@ name: Deploy to Firebase Hosting on push
 on:
   push:
     branches:
-      - main  # Eger kodyňyz 'master' branch-da bolsa, 'main' deregine 'master' ýazyň
+      - main  # Eger branch adyňyz master bolsa, master ýazyň
 
 jobs:
   build_and_deploy:
@@ -10,8 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Eger proýektiňizde build almak gerek bolsa (meselem npm run build), aşakdaky liniýanyň başyndaky #-i aýyryň:
-      # - run: npm ci && npm run build
+      # VPN Gate-den iň täze CSV-ni awtomatiki göçürip public/ papka goýýar:
+      - name: Fetch VPN Gate CSV
+        run: |
+          mkdir -p public
+          curl -s "http://www.vpngate.net/api/iphone/" -o public/vpngate.csv
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
