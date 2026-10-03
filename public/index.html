@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="tk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VPN Gate Server List</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f4f7f6;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h2 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    
+    /* Loading animasiýasy */
+    .loader-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px;
+      background: #eef6ff;
+      border-radius: 6px;
+      font-weight: bold;
+      color: #0056b3;
+    }
+    .spinner {
+      width: 22px;
+      height: 22px;
+      border: 3px solid #b3d7ff;
+      border-top: 3px solid #0056b3;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background-color: #0d6efd;
+      color: white;
+      border-radius: 2px;
+    }
+    tr:hover { background-color: #f8f9fa; }
+    
+    .copy-btn {
+      background-color: #198754;
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover { background-color: #157347; }
+    .copy-btn:active { transform: scale(0.98); }
+    
+    .ip-box {
+      font-family: monospace;
+      font-weight: bold;
+      background: #e9ecef;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>VPN Gate Server Süzgüçi</h2>
+  
+  <!-- Loading Indikatory -->
+  <div id="loader" class="loader-box">
+    <div class="spinner"></div>
+    <span id="statusText">VPN Gate CSV maglumatlary ýüklenýär, garaşyň...</span>
+  </div>
+
+  <table id="vpnTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>Ýurt</th>
+        <th>IP Adresi (Host)</th>
+        <th>TCP Port</th>
+        <th>Kopyalamak</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<script>
+  async function fetchVPNList() {
+    const loader = document.getElementById('loader');
+    const statusText = document.getElementById('statusText');
+
+    // Göni öz Firebase Hosting domenimizdäki CSV faýly çagyrýarys
+    const targetUrl = 'https://disaster-2ad1a.firebaseapp.com/vpngate.csv';
+
+    try {
+      const response = await fetch(targetUrl);
+      if (!response.ok) throw new Error('CSV faýly tapylmady ýa-da ýükläp bolmady.');
+      
+      const text = await response.text();
+      const lines = text.split('\n');
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      let count = 0;
+
+      // CSV başlyklaryny geçip, hatarlary okaýarys
+      for (let i = 2; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.startsWith('*')) continue;
+
+        const cols = line.split(',');
+        if (cols.length > 7) {
+          const ip = cols[1];        // IP adresi
+          const port = cols[7];      // TCP Port
+          const country = cols[6];   // Ýurt kody (US, JP we s.m.)
+
+          if (ip && port) {
+            const tr = document.createElement('tr');
+            const copyText = `${ip}:${port}`;
+
+            tr.innerHTML = `
+              <td><strong>${country}</strong></td>
+              <td><span class="ip-box">${ip}</span></td>
+              <td><span class="ip-box">${port}</span></td>
+              <td>
+                <button class="copy-btn" onclick="copyToClipboard('${copyText}', this)">
+                  Kopyala (${copyText})
+                </button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+            count++;
+          }
+        }
+      }
+
+      // Ýüklenme gutaransoň Loading-y aýyrmak
+      loader.style.backgroundColor = '#d1e7dd';
+      loader.style.color = '#0f5132';
+      loader.innerHTML = `✓ Jemi <strong>${count}</strong> sany serwer tapyldy.`;
+      
+      document.getElementById('vpnTable').style.display = 'table';
+
+    } catch (err) {
+      loader.style.backgroundColor = '#f8d7da';
+      loader.style.color = '#842029';
+      loader.innerHTML = 'Ýalňyşlyk ýüze çykdy: ' + err.message;
+    }
+  }
+
+  function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      const originalText = btn.innerText;
+      btn.innerText = 'Kopyalandy! ✓';
+      btn.style.backgroundColor = '#0dcaf0';
+      btn.style.color = '#000';
+      setTimeout(() => {
+        btn.innerText = originalText;
+        btn.style.backgroundColor = '#198754';
+        btn.style.color = '#fff';
+      }, 1500);
+    });
+  }
+
+  // Sahypa açylanda awtomatiki işleýär
+  fetchVPNList();
+</script>
+
+</body>
+</html>
